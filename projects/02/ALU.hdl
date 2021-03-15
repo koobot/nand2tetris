@@ -42,5 +42,31 @@ CHIP ALU {
         ng; // 1 if (out < 0),  0 otherwise
 
     PARTS:
-   // Put you code here:
+    // Pre-setting x
+    Mux16(a=x, b=false, sel=zx, out=zxOut); // If sel == 1, choose b
+    Not16(in=zxOut, out=nxOut); // Negate zx
+    Mux16(a=zxOut, b=nxOut, sel=nx, out=presetx); // If sel == 1, choose b
+
+    // Pre-setting y
+    Mux16(a=y, b=false, sel=zy, out=zyOut); // If sel == 1, choose b
+    Not16(in=zyOut, out=nyOut); // Negate zy
+    Mux16(a=zyOut, b=nyOut, sel=ny, out=presety); // If sel == 1, choose b
+
+    // Selecting between computing & or +
+    And16(a=presetx, b=presety, out=xAndy); // &
+    Add16(a=presetx, b=presety, out=xSumy); // +
+    Mux16(a=xAndy, b=xSumy, sel=f, out=compute); // If sel == 1, choose b
+
+    // Post-setting the output
+    Not16(in=compute, out=notCompute); // !out
+    Mux16(a=compute, b=notCompute, sel=no, out=out, out[0..7]=low8, out[8..15]=high8, out[15]=selng); // If sel == 1, choose b
+    
+    // Setting zr - collapsing into 1 bit for mux
+    Or8Way(in=low8, out=lowOut);
+    Or8Way(in=high8, out=highOut);
+    Or(a=lowOut, b=highOut, out=selzr);
+    Mux(a=true, b=false, sel=selzr, out=zr); // If sel == 0, choose a
+
+    // Setting ng (negative). If the most significant bit of the output is 1, then it's negative (according to 2's complement).
+    Mux(a=false, b=true,sel=selng,out=ng); // If sel == 1 (negative according to 2's complement), choose b
 }

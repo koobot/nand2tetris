@@ -16,5 +16,20 @@ CHIP PC {
     OUT out[16];
 
     PARTS:
-    // Put your code here:
+    // Increment function - counts from output
+    Inc16(in=forInc, out=incOut);
+
+    // Reset > Load > Increment
+    // Selecting the counter value
+    Mux16(a=in, b=incOut, sel=inc, out=outMuxinc); // in or increment
+    Mux16(a=outMuxinc, b=in, sel=load, out=incMuxload); // increment or load
+    Mux16(a=incMuxload, b=false, sel=reset, out=loadMuxreset); // load or reset
+
+    // Set the load selector bit
+    Mux(a=false, b=true, sel=inc, out=selinc); // 0 or inc
+    Mux(a=selinc, b=true, sel=load, out=selload); // inc or load
+    Mux(a=selload, b=true, sel=reset, out=selreset); // load or reset
+
+    // Register - output an extra for incrementor
+    Register(in=loadMuxreset, load=selreset, out=out, out=forInc);
 }

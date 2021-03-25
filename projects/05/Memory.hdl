@@ -27,5 +27,26 @@ CHIP Memory {
     OUT out[16];
 
     PARTS:
-    // Put your code here:
+    
+    /* Number of registers = 2^15 = 32,768
+    32,768 / 2 = 16,384 = when data memory ends
+    So data memory first bit of address = 0
+    Screen memory and kbd, first bit of address = 1
+    */
+    // Set load bits to choose between data memory or screen
+    DMux(in=load, sel=address[14], a=dmLoad, b=sLoad);
+
+    // Data memory: address 0 to 16,383 (bin: 0000 0000 0000 000 to 0111 1111 1111 111)
+    // address is 14 bits
+    RAM16K(in=in, load=dmLoad, address=address[0..13], out=dmOut);
+
+    // Screen memory: address 16,384 to 24,575 (bin: 1000 0000 0000 000 to 1011 1111 1111 111)
+    // address is 13 bits
+    Screen(in=in, load=sLoad, address=address[0..12], out=sOut);
+
+    // Keyboard memory: address 24,576 (bin: 1100 0000 0000 000)
+    Keyboard(out=kOut);
+
+    // Choose between outputs
+    Mux4Way16(a=dmOut, b=dmOut, c=sOut, d=kOut, sel=address[13..14], out=out);
 }

@@ -78,8 +78,10 @@ CHIP CPU {
     Mux16(a=ARegOut, b=inM, sel=instruction[12], out=mux2Out);
     
     // D Register - always ALU output
-    /* Control bit = destination-bits[1] = instruction[4] */
-    DRegister(in=ALUOut, load=instruction[4], out=DRegOut);
+    /* Control bit = destination-bits[1] = instruction[4]
+    Only load if C-instruction */
+    And(a=instruction[15], b=instruction[4], out=DRegLoad);
+    DRegister(in=ALUOut, load=DRegLoad, out=DRegOut);
 
     // ALU
     ALU(x=DRegOut, // Always D Register
@@ -94,7 +96,7 @@ CHIP CPU {
         // These are for conditional jumps in program counter
         zr=zr, ng=ng);
     
-    // Write to memory? destination[2] = instruction[3]
+    // Only write to memory if it's C-instruction. destination[2] = instruction[3]
     And(a=instruction[15], b=instruction[3], out=writeM); 
 
     // Program Counter

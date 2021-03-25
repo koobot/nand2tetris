@@ -39,5 +39,110 @@ CHIP CPU {
         pc[15];          // address of next instruction
 
     PARTS:
-    // Put your code here:
+    // Count backwards
+    /*
+    op_code[0] = instruction[15]
+    ALU control bits (a, c1:c6)[0:6] = instruction[6:12]
+    destination bits[0:2] = instruction[3:5]
+    jump bits[0:2] = instruction[0:2]
+    */
+
+    // Mux 1 - output = A Register input
+    /* op_code = instruction[15] #first bit of instruction
+    if op_code == 1:
+         A_reg_input = ALU_output
+         A_reg_input.type = C_instruction
+    elif op_code == 0:
+         A_reg_input = instruction[0:14]
+         A_reg_input.type = A_instruction */
+    Mux16(a=instruction, b=ALUOut, sel=instruction[15], out=mux1Out);
+    
+    // Control bit for A Register
+    /* op_code = 0: A instruction
+    op_code = 1: C instruction
+    If it's an A instruction, and destination bit[2] is 0, load into A-Register anyway */
+    Not(in=instruction[15], out=AInstruction);
+    Or(a=AInstruction, b=instruction[5], out=ARegLoad);
+    // A Register - Contains either A-instruction (raw) or C-instruction (ALU output)
+    /* Output decided by control bit = destination-bits[0] = instruction[3] */
+    ARegister(in=mux1Out, load=ARegLoad,
+              out=ARegOut,
+              out[0..14]=addressM);  // addressM is 15 bits
+    
+    // Mux 2 - output = y for ALU
+    /* Control bit is comp-bit[0] of the instruction = instruction[12].
+    if instruction[12] == 1:
+         y = inM     #This will be some sort of value
+    elif instruction[12] == 0:
+         y = A_reg_output #This will be A- or C-instruction */
+    Mux16(a=ARegOut, b=inM, sel=instruction[12], out=mux2Out);
+    
+    // D Register - always ALU output
+    /* Control bit = destination-bits[1] = instruction[4] */
+    DRegister(in=ALUOut, load=instruction[4], out=DRegOut);
+
+    // ALU
+    ALU(x=DRegOut, // Always D Register
+        y=mux2Out, // Either A Register (which is A- or C-instruction) or inM
+        // These are the comp bits of the instruction c1 to c6
+        zx=instruction[11], nx=instruction[10],
+        zy=instruction[9], ny=instruction[8],
+        f=instruction[7], no=instruction[6],
+        // Output
+        out=ALUOut, out=outM,
+        // if output == zero, then zr = 1, if positive, ng = 0, if neg, ng = 1
+        // These are for conditional jumps in program counter
+        zr=zr, ng=ng);
+    
+    // Write to memory? destination[2] = instruction[3]
+    And(a=instruction[15], b=instruction[3], out=writeM); 
+
+    // Program Counter
+    // load = f(jump bits, {zr,ng})
+    // Jump bits = instruction[0..2]
+    DMux8Way(in=true, sel=instruction[0..2],
+            a=null,
+            b=JGT,
+            c=JEQ,
+            d=JGE,
+            e=JLT,
+            f=JNE,
+            g=JLE,
+            h=JMP);
+    // Do logic for conditional jump bits
+    // REMEMBER: when zr=1, pos=1 (zero considered positive) and zr=1, ng=1 is not possible
+    // Not zero
+    Not(in=zr, out=nzr);
+    // Positive
+    Not(in=ng, out=pos);
+
+    // JEQ out == 0
+    And(a=JEQ, b=zr, out=JEQLoad);
+    // JNE out != 0
+    And(a=JNE, b=nzr, out=JNELoad);
+    // JLT out < 0
+    And(a=JLT, b=ng, out=JLTLoad);
+    // JGT out > 0
+    And(a=JGT, b=nzr, out=JGTnzr);  
+    And(a=JGTnzr, b=pos, out=JGTLoad);
+    // JLE out <= 0
+    Or(a=zr, b=ng, out=zrOrng);
+    And(a=JLE, b=zrOrng, out=JLELoad);
+    // JGE out >= 0
+    Or(a=zr, b=pos, out=zrOrpos);
+    And(a=JGE, b=zrOrpos, out=JGELoad);
+
+    // Turn jump logic into load bits
+    Mux8Way16(a[0]=false, b[0]=JGTLoad, c[0]=JEQLoad, d[0]=JGELoad,
+              e[0]=JLTLoad, f[0]=JNELoad, g[0]=JLELoad, h[0]=JMP,
+              sel=instruction[0..2], out[0]=loadCond);
+
+    // If A-instruction, don't load (just increment)
+    Mux(a=loadCond, b=false, sel=AInstruction, out=load);
+
+    // Increment is opposite of load
+    Not(in=load, out=inc);
+    
+    // Program Counter final
+    PC(in=ARegOut, load=load, inc=inc, reset=reset, out[0..14]=pc);
 }

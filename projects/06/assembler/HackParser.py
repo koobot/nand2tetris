@@ -67,20 +67,37 @@ class Parser(str):
     def dest(self):
         ''' Gets "destination" field for C-instruction.
         Returns string. '''
-        # Only want first part before = or ;
-        destination = re.search("(\w+)[=;]", self).group(1)
+        # Only want first part before =
+        if re.search("=", self):
+            destination = re.search("(\w+)[=]", self).group(1)
+        else:
+            destination = "null"
         return destination
 
     def comp(self):
         ''' Gets "computation" field for C-instruction.
-        Returns string. '''
+        Returns string.
+        Three possible formats:
+            1) dest=comp;jmp
+            2) dest=comp
+            3) comp;jmp
+        Formats 1 & 2 can be consolidated in same search
+        '''
         # Only want part after = but before optional ;
-        computation = re.search("=([^;]+);*", self)
+        format_a = re.search("=", self)
+        format_b = re.match("(?<!\=)[-+!&|a-zA-Z0-9]+;", self)
         
-        if computation:
-            return computation.group(1)
+        if format_a:
+            computation = re.search("=([^;]+);*", self).group(1)
+        elif format_b:
+            computation = re.search("([^;]+);", self).group(1)
+        
+#        if computation:
+#            return computation.group(1)
         else:
-            return "null"
+            #computation = "null"
+            print("Something's wrong with computation")
+        return computation
 
     def jmp(self):
         ''' Gets "jump" field for C-instruction.

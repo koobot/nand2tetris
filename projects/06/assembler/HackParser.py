@@ -4,29 +4,22 @@
 
 import re
 
-class Commands():
-    ''' Read input and build list of valid commands '''
-    def __init__(self, file_path):
-        self.file_path = file_path
-        self.commands = []
- 
-    def __repr__(self):
-        return "path: " + self.file_path
-
-    def get_valid_commands(self):
-        ''' Takes *.asm file path and returns a list of valid commands '''
-        file = open(self.file_path, 'r')
-        
-        for line in file.readlines():
-            # Ignore white space
-            line = line.strip()
-            if not line:
-                continue # Next iteration of loop
-            # Ignore comments (start with `//`)
-            if re.search("//", line):
-                continue
-            # Else valid command
-            self.commands.append(line)
+def get_valid_commands(path):
+    ''' Reads *.asm file path and returns a list of valid commands '''
+    valid_commands = []
+    file = open(path, 'r')
+    
+    for line in file.readlines():
+        # Ignore white space
+        line = line.strip()
+        if not line:
+            continue # Next iteration of loop
+        # Ignore comments (start with `//`)
+        if re.search("//", line):
+            continue
+        # Else valid command
+        valid_commands.append(line)
+    return valid_commands
 
 class Parser(str):
     ''' For a given command '''

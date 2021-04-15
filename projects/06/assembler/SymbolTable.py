@@ -1,6 +1,5 @@
 # Manages the Symbol Table
 import re
-from HackParser import Commands
 
 # Predefined symbols
 predefined_symbols = {
@@ -29,12 +28,6 @@ predefined_symbols = {
         "THAT": "4"
         }
 
-# See (xxx) add xxx and the address of the next machine language command
-
-# See @xxx where x != [0-9], and not already in the table
-
-# Have a list of valid commands - including label
-# Then need to add counter
 class SymbolTable(list):
     ''' Expects a list of valid commands '''
     def __init__(self, *args):
@@ -55,7 +48,7 @@ class SymbolTable(list):
         for command in self:
             # if contains ( should be label
             if re.search("\(", command):
-                label = re.search("\((\w+)\)", command).group(1)
+                label = re.search("\(([\w\.\$]+)\)", command).group(1)
                 address = line_counter
                 #print(label, address)
                 self.symbol_table[label] = address
@@ -74,10 +67,7 @@ class SymbolTable(list):
         for command in self:
             # if variable symbol
             if re.search("@[a-zA-Z]", command):
-                var_sym = re.search("@(\w+)", command).group(1)
+                var_sym = re.search("@([\w\.\$]+)", command).group(1)
                 if var_sym not in self.symbol_table:
                     self.symbol_table[var_sym] = mem_addr
                     mem_addr += 1
-                    
-
-

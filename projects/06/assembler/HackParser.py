@@ -10,13 +10,13 @@ def get_valid_commands(path):
     file = open(path, 'r')
     
     for line in file.readlines():
+        # Remove any comments (start with '//')
+        line = re.sub("//.+$", "", line)
         # Ignore white space
         line = line.strip()
         if not line:
             continue # Next iteration of loop
-        # Ignore comments (start with `//`)
-        if re.search("//", line):
-            continue
+        
         # Else valid command
         valid_commands.append(line)
     return valid_commands
@@ -41,7 +41,7 @@ class Parser(str):
         elif re.search("=|;", self):
             instruction = "C-instruction"
         # Label should start with open bracket
-        elif re.search("(", self):
+        elif re.search("\(", self):
             instruction = "label"
         else:
             print("Error - not valid instruction type")

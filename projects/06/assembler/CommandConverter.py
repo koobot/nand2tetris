@@ -76,11 +76,18 @@ class Code(Parser):
         return comp_bin
 
 
-    def convert_to_binary(self):
+    def convert_to_binary(self, sym_tab = {}):
         ''' Converts decimal to binary '''
         if self.instruction_type == "A-instruction":
             # Remove @
-            addr_dec = int(re.sub("@", "", self))
+            addr = re.sub("@", "", self)
+            # If text do lookup
+            if re.search("[a-zA-Z]", addr):
+                addr_dec = sym_tab[addr]
+                addr_dec = int(addr_dec)
+            else:
+                addr_dec = int(addr)
+
             # Removes the '0b' from string
             addr_bin = bin(addr_dec)[2:]
             # Pad with 0's - assume 16-bit
@@ -105,9 +112,12 @@ class Code(Parser):
             c_bin = "".join(c_components)
 
             return c_bin
-
+        
+        elif self.instruction_type == "label":
+            ''' Ignore labels '''
+            return None
             
         else:
-            return "not A-instruction"
+            return "Not valid instruction"
             
 
